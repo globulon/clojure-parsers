@@ -22,6 +22,7 @@
     (into (empty source)(mapcat f source))))
 
 
+
 ;(defn bind [m f]
 ;  (let [structure (fmap m f)
 ;        join]))

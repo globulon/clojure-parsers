@@ -18,6 +18,10 @@
              (fn [[result remaining]] ((f result) remaining))
              results)))))
 
+(defmacro parse
+  ([f p] `(bind ~p (fn [x#] (result (~f x#)))))
+  ([f p & ps] `(bind ~p (fn [x#] (parse (partial ~f x#) ~@ps)))))
+
 (defn satisfy? [predicate]
   (bind item (fn [input]
     (if (predicate input)
@@ -59,23 +63,18 @@
   (Character/digit chr 10))
 
 (defn to-number [digits]
-  (reduce (fn [acc val] (+ (* 10 acc) (to-digit val))) 0 digits))
+  (if (empty? digits)
+    []
+    (reduce (fn [acc val] (+ (* 10 acc) (to-digit val))) 0 digits)))
 
 (def natural
-  (bind
-    (many digit)
-    (fn [digits]
-      (if (empty? digits)
-        zero
-        (result (to-number digits))))))
+  (parse to-number (many digit)))
+
+(defn to-negative [_ y]
+  (if (number? y) (- y)))
 
 (def negative
-  (bind (chr \-)
-    (fn [_] (bind natural
-       (fn [y]
-        (if (number? y)
-          (result (* -1 y))
-          (result  y)))))))
+  (parse to-negative (chr \-) natural))
 
 (def integer (plus natural negative))
 
