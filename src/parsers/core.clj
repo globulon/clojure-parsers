@@ -92,25 +92,22 @@
       (comp vec cons)
       [(chr head) (string tail)])))
 
+(defn sepby1[with-parser separator]
+  (parse
+    (fn [n ns] (into [] (cons n ns)))
+    [with-parser
+     (many (parse (fn [_ n] n) [separator with-parser]))]))
+
+(defn bracket [open with-parser close]
+  (parse
+    (fn [_ content _] content)
+    [open with-parser close]))
+
 (def integers
   (parse
-    (fn [_ n ns _] (into [] (cons n ns)))
-    [(chr \[)
-    integer
-    (many (parse (fn [_ n] n) [(chr \,) integer]))
-    (chr \])]))
+    (fn [_ x _] x )
+    [
+      (chr \[)
+      (sepby1 integer (chr \,))
+      (chr \])]))
 
-;(defn sepby1[parser sep]
-;  (parse
-;    (fn [n ns] (into [] (cons n ns)))
-;    [integer
-;     (many (parse (fn [_ n] n) [sep parser]))]))
-;
-;(defn bracket [open with-parser close]
-;  (parse
-;    (fn [_ content _] content)
-;    [open with-parser close]))
-;
-;(defn integers (bracket (chr \[) (sepby1 (chr \,) integer ) (chr \])))
-
-;(def integers (sepby1 (chr \,) integer))
