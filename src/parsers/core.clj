@@ -1,4 +1,4 @@
-(ns parsers.core)
+4(ns parsers.core)
 
 (def zero (fn [s] []))
 
@@ -18,9 +18,14 @@
              (fn [[result remaining]] ((f result) remaining))
              results)))))
 
-(defmacro parse
-  ([f p] `(bind ~p (fn [x#] (result (~f x#)))))
-  ([f p & ps] `(bind ~p (fn [x#] (parse (partial ~f x#) ~@ps)))))
+(defn parse
+  ([f ps] (parse f [] ps))
+  ([f args ps]
+   (if (empty? ps)
+     (result (apply f args))
+     (bind
+       (first ps)
+       (fn [x] (parse f (conj args x) (rest ps)))))))
 
 (defn satisfy? [predicate]
   (bind item (fn [input]
@@ -37,23 +42,23 @@
 
 (def upper (satisfy? (fn [c] (Character/isUpperCase c))))
 
-(defn plus [p q]
+(defn ++ [p q]
   (fn [input]
     (vec (concat (p input) (q input)))))
 
-(def letter (plus lower upper))
+(def letter (++ lower upper))
 
-(def alphanum (plus letter digit))
+(def alphanum (++ letter digit))
 
 (def word
-  (plus
+  (++
     (bind letter (fn [x]
       (bind word (fn [s]
         (result (vec (cons x s)))))))
     (result "")))
 
 (defn many [parser]
-  (plus
+  (++
     (bind parser (fn [x]
       (bind (many parser) (fn [xs]
         (result (cons x xs))))))
@@ -68,14 +73,44 @@
     (reduce (fn [acc val] (+ (* 10 acc) (to-digit val))) 0 digits)))
 
 (def natural
-  (parse to-number (many digit)))
+  (parse to-number [(many digit)]))
 
 (defn to-negative [_ y]
-  (if (number? y) (- y)))
+  (if (number? y)
+    (- y)
+    y))
 
 (def negative
-  (parse to-negative (chr \-) natural))
+  (parse to-negative [(chr \-) natural]))
 
-(def integer (plus natural negative))
+(def integer (++ negative natural))
 
+(defn string[[head & tail]]
+  (if (nil? head)
+    (result "")
+    (parse
+      (comp vec cons)
+      [(chr head) (string tail)])))
 
+(def integers
+  (parse
+    (fn [_ n ns _] (into [] (cons n ns)))
+    [(chr \[)
+    integer
+    (many (parse (fn [_ n] n) [(chr \,) integer]))
+    (chr \])]))
+
+;(defn sepby1[parser sep]
+;  (parse
+;    (fn [n ns] (into [] (cons n ns)))
+;    [integer
+;     (many (parse (fn [_ n] n) [sep parser]))]))
+;
+;(defn bracket [open with-parser close]
+;  (parse
+;    (fn [_ content _] content)
+;    [open with-parser close]))
+;
+;(defn integers (bracket (chr \[) (sepby1 (chr \,) integer ) (chr \])))
+
+;(def integers (sepby1 (chr \,) integer))
