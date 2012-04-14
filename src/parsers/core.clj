@@ -64,6 +64,12 @@
         (result (cons x xs))))))
     (result "")))
 
+(defn many1 [parser]
+    (bind parser (fn [x]
+      (bind (many parser) (fn [xs]
+        (result (cons x xs)))))))
+
+
 (defn to-digit [chr]
   (Character/digit chr 10))
 
@@ -110,4 +116,29 @@
       (chr \[)
       (sepby1 integer (chr \,))
       (chr \])]))
+
+;;repetition with meaningful operators
+
+(def addop
+  (++
+    (parse (fn [_] +) [(chr \+)])
+    (parse (fn [_] -) [(chr \-)])))
+
+(defn factor [expression]
+  (++
+    natural
+    (bracket (chr \() expression (chr \)))))
+
+(def expr
+  (parse
+    (fn [x fys] (reduce
+                  (fn [acc [f y]]
+                    (if (vector? y) acc (f acc y)))
+                  x fys))
+    [
+      (factor expr)
+      (many (parse
+              (fn [f y] [f y])
+              [addop (factor expr)]))]))
+
 
