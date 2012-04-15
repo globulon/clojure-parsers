@@ -45,3 +45,9 @@
   (is (=
         [[[\Y \e \s] [\!]] [[\Y \e] [\s \!]] [[\Y] [\e \s \!]] ["" "Yes!"]]
         (word "Yes!"))))
+
+(deftest exp-with-no-parenthesis-should-match
+    (is (= 0 (first (first (expr "1+2-3"))))))
+
+(deftest exp-with-parenthesis-should-match
+  (is (= 0 (first (first (expr "1+(2-3)"))))))

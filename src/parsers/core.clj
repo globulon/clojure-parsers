@@ -1,4 +1,4 @@
-4(ns parsers.core)
+(ns parsers.core)
 
 (def zero (fn [s] []))
 
@@ -18,14 +18,14 @@
              (fn [[result remaining]] ((f result) remaining))
              results)))))
 
-(defn parse
-  ([f ps] (parse f [] ps))
+(defn mbind
+  ([f ps] (mbind f [] ps))
   ([f args ps]
    (if (empty? ps)
      (result (apply f args))
      (bind
        (first ps)
-       (fn [x] (parse f (conj args x) (rest ps)))))))
+       (fn [x] (mbind f (conj args x) (rest ps)))))))
 
 (defn satisfy? [predicate]
   (bind item (fn [input]
@@ -76,10 +76,10 @@
 (defn to-number [digits]
   (if (empty? digits)
     []
-    (reduce (fn [acc val] (+ (* 10 acc) (to-digit val))) 0 digits)))
+    (read-string (apply str digits))))
 
 (def natural
-  (parse to-number [(many digit)]))
+  (mbind to-number [(many digit)]))
 
 (defn to-negative [_ y]
   (if (number? y)
@@ -87,30 +87,30 @@
     y))
 
 (def negative
-  (parse to-negative [(chr \-) natural]))
+  (mbind to-negative [(chr \-) natural]))
 
 (def integer (++ negative natural))
 
 (defn string[[head & tail]]
   (if (nil? head)
     (result "")
-    (parse
+    (mbind
       (comp vec cons)
       [(chr head) (string tail)])))
 
 (defn sepby1[with-parser separator]
-  (parse
+  (mbind
     (fn [n ns] (into [] (cons n ns)))
     [with-parser
-     (many (parse (fn [_ n] n) [separator with-parser]))]))
+     (many (mbind (fn [_ n] n) [separator with-parser]))]))
 
 (defn bracket [open with-parser close]
-  (parse
+  (mbind
     (fn [_ content _] content)
     [open with-parser close]))
 
 (def integers
-  (parse
+  (mbind
     (fn [_ x _] x )
     [
       (chr \[)
@@ -121,24 +121,21 @@
 
 (def addop
   (++
-    (parse (fn [_] +) [(chr \+)])
-    (parse (fn [_] -) [(chr \-)])))
+    (mbind (fn [_] +) [(chr \+)])
+    (mbind (fn [_] -) [(chr \-)])))
 
-(defn factor [expression]
-  (++
-    natural
-    (bracket (chr \() expression (chr \)))))
-
-(def expr
-  (parse
+(defn chainl1 [parser operations]
+  (mbind
     (fn [x fys] (reduce
                   (fn [acc [f y]]
                     (if (vector? y) acc (f acc y)))
                   x fys))
-    [
-      (factor expr)
-      (many (parse
-              (fn [f y] [f y])
-              [addop (factor expr)]))]))
+    [ parser
+      (many (mbind vector [operations parser]))]))
 
+(defn expr [input]
+  (let [factor (++
+                (bracket (chr \() expr (chr \)))
+                natural)]
+    ((chainl1 factor  addop) input)))
 
