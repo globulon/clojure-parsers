@@ -42,6 +42,12 @@
 
 (def upper (satisfy? (fn [c] (Character/isUpperCase c))))
 
+(def character (satisfy? (fn [c] (not= c \newline))))
+
+(def space
+  (let [blanks [\space \newline \tab]]
+    (satisfy? (fn [c] (contains?  blanks c)))))
+
 (defn ++ [p q]
   (fn [input]
     (vec (concat (p input) (q input)))))
@@ -138,4 +144,11 @@
                 (bracket (chr \() expr (chr \)))
                 natural)]
     ((chainl1 factor  addop) input)))
+
+(def spaces (mbind (fn [_] "") [(many space)]))
+
+(def comments
+  (mbind
+    (fn [_ _] "")
+    [(string ";;") (many character)]))
 
