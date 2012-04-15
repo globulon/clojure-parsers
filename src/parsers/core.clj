@@ -45,8 +45,10 @@
 (def character (satisfy? (fn [c] (not= c \newline))))
 
 (def space
-  (let [blanks [\space \newline \tab]]
-    (satisfy? (fn [c] (contains?  blanks c)))))
+  (satisfy? (fn [c] (or
+                      (= \space c)
+                      (= \newline c)
+                      (= \tab c)))))
 
 (defn ++ [p q]
   (fn [input]
@@ -84,7 +86,7 @@
     []
     (read-string (apply str digits))))
 
-(def natural
+(def nat
   (mbind to-number [(many digit)]))
 
 (defn to-negative [_ y]
@@ -95,7 +97,7 @@
 (def negative
   (mbind to-negative [(chr \-) natural]))
 
-(def integer (++ negative natural))
+(def integer (++ negative nat))
 
 (defn string[[head & tail]]
   (if (nil? head)
@@ -142,13 +144,30 @@
 (defn expr [input]
   (let [factor (++
                 (bracket (chr \() expr (chr \)))
-                natural)]
+                nat)]
     ((chainl1 factor  addop) input)))
 
-(def spaces (mbind (fn [_] "") [(many space)]))
+(def spaces (many space))
 
 (def comments
   (mbind
-    (fn [_ _] "")
+    (fn [pre text] (apply str (concat pre text)))
     [(string ";;") (many character)]))
+
+(def junk
+  (mbind
+    (fn [_ _] "")
+    [spaces (++ comments (result ""))]))
+
+(defn parse [with-parser]
+  (mbind
+    (fn [_ data] data)
+    [junk with-parser]))
+
+(defn token [with-parser]
+  (mbind
+    (fn [data _] data)
+    [with-parser junk]))
+
+(def natural (token nat))
 

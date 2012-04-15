@@ -51,3 +51,9 @@
 
 (deftest exp-with-parenthesis-should-match
   (is (= 0 (first (first (expr "1+(2-3)"))))))
+
+(deftest spaces-should-be-identifiable
+  (is (= [["" "    "]] (spaces "    "))))
+
+(deftest comments-should-start-with-double-semi-colon
+  (is (= "" (first (first (comments ";;blah"))))))
