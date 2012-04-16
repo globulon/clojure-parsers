@@ -95,7 +95,7 @@
     y))
 
 (def negative
-  (mbind to-negative [(chr \-) natural]))
+  (mbind to-negative [(chr \-) nat]))
 
 (def integer (++ negative nat))
 
